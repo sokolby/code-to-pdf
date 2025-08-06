@@ -1,0 +1,8 @@
+# Basic ignore patterns - common directories to exclude
+.idea/*
+.git/*
+node_modules/*
+vendor/*
+*.log
+*.tmp
+*.cache

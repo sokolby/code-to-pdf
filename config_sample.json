@@ -1,0 +1,37 @@
+{
+  "fonts": {
+    "title": {
+      "family": "Helvetica",
+      "size": 20,
+      "alignment": "center"
+    },
+    "file_path": {
+      "family": "Helvetica",
+      "size": 16,
+      "style": "bold"
+    },
+    "code": {
+      "family": "Courier",
+      "size": 13,
+      "indent": 0
+    }
+  },
+  "layout": {
+    "page_size": "A4",
+    "margins": {
+      "top": 72,
+      "bottom": 72,
+      "left": 72,
+      "right": 72
+    }
+  },
+  "code_folder": "../",
+  "output_folder": "output/",
+  "ignore_file": "ignore.txt",
+  "defaults": {
+    "title": "Code Listing",
+    "pages": 10,
+    "filename": "code_listing.pdf",
+    "update_ignore": false
+  }
+} 

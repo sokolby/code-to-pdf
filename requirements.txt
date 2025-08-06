@@ -1,0 +1,2 @@
+# Python 3.6+ required
+reportlab>=4.0.0 
