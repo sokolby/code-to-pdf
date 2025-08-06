@@ -11,6 +11,7 @@ A Python script that generates PDF files containing **code listings** from your 
 - **NEW**: Smart page limiting with intelligent file selection
 - **NEW**: Exact page counting and reporting
 - **NEW**: Flexible page limits (allows 2-3 extra pages for better utilization)
+- **NEW**: AI-powered summary generation using Anthropic API
 
 ## Features
 
@@ -78,6 +79,77 @@ PDF generated successfully: output/my_code.pdf
 Total pages generated: 23
 Files processed and added to PDF: 8
 ```
+
+## AI-Powered Summary Generation
+
+The script now supports AI-powered summary generation using the Anthropic API:
+
+- **Intelligent Analysis**: AI analyzes file types, names, and structure to create contextual summaries
+- **Fallback Support**: If AI is unavailable, falls back to rule-based summaries
+- **Descriptive Format**: Generates detailed summaries like "Added React components for user interface. Added new 15 pages."
+- **Automatic Integration**: Works seamlessly with existing functionality
+
+### Setup:
+1. Install the anthropic package: `pip3 install anthropic`
+2. Add your API key to `config.json` (see API Key Setup section below)
+3. Run the script normally - AI summaries will be generated automatically
+
+**Alternative**: You can also set the environment variable: `export ANTHROPIC_API_KEY="your-api-key-here"`
+
+### Example AI Summaries:
+- **Web Project**: "Added React components for user interface. Added new 15 pages."
+- **Mobile Project**: "Added React Native mobile application code. Added new 8 pages."
+- **Backend Project**: "Added Python backend API functions. Added new 12 pages."
+- **Mixed Project**: "Added full-stack web application components. Added new 20 pages."
+
+### Fallback Behavior:
+If no API key is set or AI fails, the script automatically uses rule-based summaries:
+```
+Warning: ANTHROPIC_API_KEY not found in config or environment. Using rule-based summary.
+Suggested summary: 22 Pug templates, 1 Markdown, 1 JSON config. 14 pages. UI components included.
+```
+
+### AI Summary Format:
+The AI generates summaries in a consistent format: "Added [technology/component type] [purpose/functionality]. Added new [X] pages."
+
+**Examples:**
+- "Added Stylus/Pug styling components for buttons, forms, checkboxes and sprites. Added new 12 pages."
+- "Added Pug template components for HTML markup generation and layout structure. Added new 25 pages."
+- "Added React components for user interface. Added new 15 pages."
+- "Added Python backend API functions. Added new 8 pages."
+
+### AI Configuration Options:
+You can customize AI behavior in your `config.json`:
+```json
+"ai": {
+  "anthropic_api_key": "your-api-key-here",
+  "enable_ai_summary": true,
+  "model": "claude-3-5-sonnet-20241022",
+  "max_tokens": 50,
+  "temperature": 0.3
+}
+```
+
+- **`anthropic_api_key`**: Your Anthropic API key (required for AI summaries)
+- **`enable_ai_summary`**: Set to `false` to disable AI summaries and use only rule-based summaries
+- **`model`**: Choose different Anthropic models (default: claude-3-5-sonnet-20241022)
+- **`max_tokens`**: Control response length (default: 50)
+- **`temperature`**: Control creativity (0.0 = deterministic, 1.0 = very creative, default: 0.3)
+
+### API Key Setup:
+1. **Config File Method** (Recommended): Add your API key to `config.json`:
+   ```json
+   "ai": {
+     "anthropic_api_key": "sk-ant-api03-your-key-here"
+   }
+   ```
+
+2. **Environment Variable Method**: Set the environment variable:
+   ```bash
+   export ANTHROPIC_API_KEY="sk-ant-api03-your-key-here"
+   ```
+
+**Note**: The config file method takes precedence over environment variables.
 
 ## Detailed Usage
 

@@ -33,5 +33,12 @@
     "pages": 10,
     "filename": "code_listing.pdf",
     "update_ignore": false
+  },
+  "ai": {
+    "anthropic_api_key": "",
+    "enable_ai_summary": true,
+    "model": "claude-3-5-sonnet-20241022",
+    "max_tokens": 50,
+    "temperature": 0.3
   }
 } 

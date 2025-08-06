@@ -430,7 +430,205 @@ def generate_pdf(output_path, title, files_list, max_pages=None, config=None):
         print(f"Files processed and added to PDF: {len(processed_files)}")
         print("Note: Install PyPDF2 to see exact page count")
     
+    # Generate summary and create title.txt
+    summary = generate_file_summary(processed_files, actual_pages, config)
+    title_file_path = output_path.replace('.pdf', '_title.txt')
+    
+    try:
+        with open(title_file_path, 'w', encoding='utf-8') as f:
+            f.write(f"PDF: {os.path.basename(output_path)}\n")
+            f.write(f"Pages: {actual_pages}\n")
+            f.write(f"Files: {len(processed_files)}\n")
+            f.write(f"Summary: {summary}\n")
+        print(f"Title file created: {title_file_path}")
+        print(f"Suggested summary: {summary}")
+    except Exception as e:
+        print(f"Warning: Could not create title file: {str(e)}")
+    
     return processed_files
+
+
+def generate_file_summary(processed_files, page_count, config=None):
+    """Generate a brief summary of the PDF content based on file types and structure."""
+    if not processed_files:
+        return "Empty PDF. No files processed."
+    
+    # Check if AI summary is enabled
+    ai_enabled = True
+    if config and 'ai' in config:
+        ai_enabled = config['ai'].get('enable_ai_summary', True)
+    
+    # Try AI-powered summary first if enabled
+    if ai_enabled:
+        ai_summary = generate_ai_summary(processed_files, page_count, config)
+        if ai_summary:
+            return ai_summary
+    
+    # Fallback to rule-based summary
+    return generate_rule_based_summary(processed_files, page_count)
+
+
+def generate_ai_summary(processed_files, page_count, config=None):
+    """Generate AI-powered summary using Anthropic API."""
+    try:
+        import anthropic
+        
+        # Check for API key from config first, then environment variable
+        api_key = None
+        if config and 'ai' in config and config['ai'].get('anthropic_api_key'):
+            api_key = config['ai']['anthropic_api_key']
+        else:
+            api_key = os.getenv('ANTHROPIC_API_KEY')
+            
+        if not api_key:
+            print("Warning: ANTHROPIC_API_KEY not found in config or environment. Using rule-based summary.")
+            return None
+        
+        # Prepare file list for AI analysis
+        file_list = []
+        for file_path in processed_files:
+            relative_path = os.path.basename(file_path)
+            _, ext = os.path.splitext(file_path.lower())
+            file_list.append(f"- {relative_path} ({ext})")
+        
+        # Create prompt for AI
+        prompt = f"""Analyze this list of code files and create a brief summary describing what was added to this PDF.
+
+Files ({len(processed_files)} total, {page_count} pages):
+{chr(10).join(file_list[:20])}{'...' if len(file_list) > 20 else ''}
+
+Generate a summary in this format: "Added [technology/component type] [purpose/functionality]. Added new [X] pages."
+
+Examples:
+- "Added React components for user interface. Added new 15 pages."
+- "Added Python backend API functions. Added new 8 pages."
+- "Added CSS styling for web components. Added new 12 pages."
+- "Added JavaScript utility functions. Added new 6 pages."
+
+Focus on:
+- Main technology/language used (React, Python, CSS, JavaScript, etc.)
+- Component type or functionality (components, functions, styling, etc.)
+- Purpose or context (UI, backend, utilities, etc.)
+
+Respond with ONLY the summary in the specified format."""
+        
+        # Get AI configuration from config or use defaults
+        ai_config = config.get('ai', {}) if config else {}
+        model = ai_config.get('model', 'claude-3-5-sonnet-20241022')
+        max_tokens = ai_config.get('max_tokens', 50)
+        temperature = ai_config.get('temperature', 0.3)
+        
+        # Call Anthropic API
+        client = anthropic.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model=model,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
+        
+        summary = response.content[0].text.strip()
+        
+        # Add page count if not included
+        if str(page_count) not in summary:
+            summary += f". {page_count} pages."
+        
+        return summary
+        
+    except ImportError:
+        print("Warning: anthropic package not installed. Using rule-based summary.")
+        return None
+    except Exception as e:
+        print(f"Warning: AI summary failed ({str(e)}). Using rule-based summary.")
+        return None
+
+
+def generate_rule_based_summary(processed_files, page_count):
+    """Generate rule-based summary as fallback."""
+    # Analyze file types
+    file_extensions = {}
+    file_types = []
+    
+    for file_path in processed_files:
+        _, ext = os.path.splitext(file_path.lower())
+        if ext:
+            file_extensions[ext] = file_extensions.get(ext, 0) + 1
+    
+    # Determine main file types
+    main_extensions = sorted(file_extensions.items(), key=lambda x: x[1], reverse=True)[:3]
+    
+    # Map extensions to readable names
+    ext_to_name = {
+        '.js': 'JavaScript',
+        '.jsx': 'React JSX',
+        '.ts': 'TypeScript',
+        '.tsx': 'React TSX',
+        '.py': 'Python',
+        '.html': 'HTML',
+        '.css': 'CSS',
+        '.styl': 'Stylus',
+        '.pug': 'Pug templates',
+        '.json': 'JSON config',
+        '.md': 'Markdown',
+        '.txt': 'Text files',
+        '.sh': 'Shell scripts',
+        '.sql': 'SQL queries',
+        '.php': 'PHP',
+        '.java': 'Java',
+        '.cpp': 'C++',
+        '.c': 'C',
+        '.h': 'Header files',
+        '.xml': 'XML',
+        '.yaml': 'YAML',
+        '.yml': 'YAML',
+        '.rb': 'Ruby',
+        '.go': 'Go',
+        '.rs': 'Rust',
+        '.swift': 'Swift',
+        '.kt': 'Kotlin',
+        '.scala': 'Scala',
+        '.vue': 'Vue.js',
+        '.svelte': 'Svelte'
+    }
+    
+    # Build summary based on file types
+    if len(main_extensions) == 1:
+        ext, count = main_extensions[0]
+        file_type = ext_to_name.get(ext, ext[1:].upper())
+        if count == 1:
+            summary = f"Single {file_type} file. {page_count} pages."
+        else:
+            summary = f"{count} {file_type} files. {page_count} pages."
+    elif len(main_extensions) == 2:
+        ext1, count1 = main_extensions[0]
+        ext2, count2 = main_extensions[1]
+        type1 = ext_to_name.get(ext1, ext1[1:].upper())
+        type2 = ext_to_name.get(ext2, ext2[1:].upper())
+        summary = f"{count1} {type1}, {count2} {type2}. {page_count} pages."
+    else:
+        # Multiple file types
+        types = []
+        for ext, count in main_extensions:
+            file_type = ext_to_name.get(ext, ext[1:].upper())
+            types.append(f"{count} {file_type}")
+        summary = f"{', '.join(types)}. {page_count} pages."
+    
+    # Add context based on file paths
+    if any('components' in f for f in processed_files):
+        summary += " UI components included."
+    elif any('views' in f for f in processed_files):
+        summary += " Page templates included."
+    elif any('gulp' in f for f in processed_files):
+        summary += " Build scripts included."
+    elif any('assets' in f for f in processed_files):
+        summary += " Asset files included."
+    
+    return summary
 
 
 def main():
