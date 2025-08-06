@@ -20,12 +20,10 @@ import argparse
 
 
 
-def load_config(config_file=None):
-    """Load configuration from JSON file."""
-    if config_file is None:
-        # Try to find config.json in the same directory as the script
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        config_file = os.path.join(script_dir, 'config.json')
+def load_config():
+    """Load configuration from config.json file."""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    config_file = os.path.join(script_dir, 'config.json')
     
     if not os.path.exists(config_file):
         raise FileNotFoundError(f"Config file '{config_file}' not found. Please create a config.json file.")
@@ -404,7 +402,6 @@ def main():
     parser = argparse.ArgumentParser(description='Generate PDF with code listings')
     
     # Configuration options
-    parser.add_argument('--config', help='Path to configuration file (default: config.json in script directory)')
     parser.add_argument('--ignore-file', help='Path to ignore file (overrides config)')
     
     # Output options
@@ -426,7 +423,7 @@ def main():
     
     # Load configuration
     try:
-        config = load_config(args.config)
+        config = load_config()
     except (FileNotFoundError, ValueError, RuntimeError) as e:
         print(f"Error: {e}")
         sys.exit(1)

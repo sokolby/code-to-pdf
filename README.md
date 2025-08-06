@@ -1,10 +1,17 @@
 # Code to PDF Generator
 
-A Python script that generates PDF files containing code listings with proper formatting and font support.
+A Python script that generates PDF files containing **code listings** from your project files. It scans your codebase, finds all supported code files, and creates a PDF document with the complete source code listings formatted for easy reading.
+
+**What it does:**
+- Scans your project directory for code files
+- Creates a PDF with all your source code listings
+- Preserves exact formatting and indentation
+- Tracks processed files to avoid duplicates
+- Supports 20+ programming languages and file types
 
 ## Features
 
-- ✅ **Real Files**: Reads actual code files from a specified folder
+- ✅ **Code Listings**: Creates PDF with complete source code listings from your project
 - ✅ **Perfect Code Formatting**: Preserves exact original formatting with zero padding
 - ✅ **Relative Paths**: Shows clean relative paths instead of long absolute paths
 - ✅ **Smart Ignore File**: Track and skip already processed files with wildcard patterns
@@ -41,8 +48,7 @@ python3 generate_code_pdf.py --no-ignore --filename all_files.pdf
 # Update ignore file with processed files
 python3 generate_code_pdf.py --update-ignore --filename processed.pdf
 
-# Use custom config file
-python3 generate_code_pdf.py --config my_config.json
+
 
 # Show current configuration
 python3 generate_code_pdf.py --show-config
@@ -54,7 +60,6 @@ python3 generate_code_pdf.py --show-config
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--config` | Path to configuration file | `config.json` in script directory |
 | `--ignore-file` | Path to ignore file (overrides config) | From config or `ignore.txt` |
 | `--title` | PDF title (overrides config) | From config or "Code Listing" |
 | `--filename` | Output filename (overrides config) | From config or "code_listing.pdf" |
@@ -123,11 +128,11 @@ The script uses `config.json` for all settings, with command line arguments taki
 
 ## Output Format
 
-The generated PDF includes:
+The generated PDF contains complete code listings with:
 
 1. **Title**: Centered heading with configurable font and size
 2. **File Paths**: Bold headers showing relative paths from the base directory
-3. **Code Blocks**: Perfectly preserved original formatting with zero padding
+3. **Code Blocks**: Complete source code with perfectly preserved original formatting
 
 ### Code Formatting
 
@@ -143,9 +148,9 @@ The generated PDF includes:
 ### Supported File Types
 
 The script automatically detects and processes common code and text files:
-- `.py`, `.js`, `.jsx`, `.ts`, `.tsx`, `.html`, `.css`, `.scss`, `.less`
-- `.java`, `.c`, `.cpp`, `.h`, `.hpp`, `.cs`, `.go`, `.rb`, `.php`, `.swift`
-- `.kt`, `.rs`, `.sh`, `.bash`, `.json`, `.xml`, `.yaml`, `.yml`, `.md`
+- `.py`, `.js`, `.jsx`, `.ts`, `.tsx`, `.html`, `.css`, `.php`, `.java`, `.cpp`, `.c`, `.h`
+- `.json`, `.xml`, `.yaml`, `.yml`, `.md`, `.txt`, `.sh`, `.bash`, `.sql`
+- `.r`, `.rb`, `.go`, `.rs`, `.swift`, `.kt`, `.scala`, `.vue`, `.svelte`, `.pug`, `.styl`
 
 ### Code Folder
 
@@ -191,9 +196,7 @@ code-to-pdf/
 ├── config.json             # Configuration file (copy from sample)
 ├── requirements.txt        # Python dependencies
 ├── README.md              # This file
-├── .gitignore             # Git ignore rules
 ├── ignore.txt             # Track processed files (optional)
-├── ignore_sample.txt      # Sample ignore file format
 └── output/                # Generated PDFs (git-ignored)
 ```
 
