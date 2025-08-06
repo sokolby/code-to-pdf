@@ -104,9 +104,23 @@ The script now supports AI-powered summary generation using the Anthropic API:
 
 ### Fallback Behavior:
 If no API key is set or AI fails, the script automatically uses rule-based summaries:
+
+**API Key Missing:**
 ```
 Warning: ANTHROPIC_API_KEY not found in config or environment. Using rule-based summary.
 Suggested summary: 22 Pug templates, 1 Markdown, 1 JSON config. 14 pages. UI components included.
+```
+
+**API Overload (Error 529):**
+```
+API overloaded, retrying in 2 seconds... (attempt 1/3)
+API overloaded, retrying in 4 seconds... (attempt 2/3)
+API still overloaded after 3 attempts. Using rule-based summary.
+```
+
+**Other API Errors:**
+```
+Error calling Anthropic API: [error details]. Using rule-based summary.
 ```
 
 ### AI Summary Format:
@@ -118,6 +132,33 @@ The AI generates summaries in a consistent format: "Added [technology/component 
 - "Added React components for user interface. Added new 15 pages."
 - "Added Python backend API functions. Added new 8 pages."
 
+### Multi-Language Support:
+The AI can generate summaries in multiple languages simultaneously. Configure the `languages` array in your config:
+
+```json
+"languages": ["en", "ru", "pl", "es", "de"]
+```
+
+**Supported Languages:**
+- **`en`**: English (default)
+- **`ru`**: Russian (Русский)
+- **`pl`**: Polish (Polski)
+- **`es`**: Spanish (Español)
+- **`de`**: German (Deutsch)
+
+**Multi-Language Example:**
+```
+Summary [EN]: Added Stylus/Pug styling components for design system and UI elements. Added new 9 pages.
+Summary [RU]: Добавлены Stylus/Pug стили и шаблоны для оформления базовых UI элементов. Добавлено новых 9 страниц.
+Summary [PL]: Dodano style Stylus i szablony Pug dla przewodnika stylów i komponentów UI. Dodano nowych 9 stron.
+```
+
+**Smart Translation Process:**
+- **English Analysis**: AI first analyzes code files in English for accurate technical understanding
+- **Multi-Language Translation**: Then translates to requested languages with proper technical terminology
+- **Format Consistency**: Maintains exact format across all languages while preserving technical accuracy
+- **Page Count Preservation**: Keeps page numbers unchanged across all language versions
+
 ### AI Configuration Options:
 You can customize AI behavior in your `config.json`:
 ```json
@@ -126,7 +167,8 @@ You can customize AI behavior in your `config.json`:
   "enable_ai_summary": true,
   "model": "claude-3-5-sonnet-20241022",
   "max_tokens": 50,
-  "temperature": 0.3
+  "temperature": 0.3,
+  "languages": ["en"]
 }
 ```
 
@@ -135,6 +177,9 @@ You can customize AI behavior in your `config.json`:
 - **`model`**: Choose different Anthropic models (default: claude-3-5-sonnet-20241022)
 - **`max_tokens`**: Control response length (default: 50)
 - **`temperature`**: Control creativity (0.0 = deterministic, 1.0 = very creative, default: 0.3)
+- **`languages`**: Array of language codes for multi-language summaries (default: ["en"])
+- **`max_retries`**: Number of retry attempts for API overload errors (default: 3)
+- **`retry_delay`**: Initial delay in seconds between retries, doubles each attempt (default: 2)
 
 ### API Key Setup:
 1. **Config File Method** (Recommended): Add your API key to `config.json`:

@@ -469,17 +469,18 @@ def generate_file_summary(processed_files, page_count, config=None):
 
 
 def generate_ai_summary(processed_files, page_count, config=None):
-    """Generate AI-powered summary using Anthropic API."""
+    """Generate AI-powered summary using Anthropic API"""
     try:
         import anthropic
         
-        # Check for API key from config first, then environment variable
+        # Get API key from config or environment
         api_key = None
-        if config and 'ai' in config and config['ai'].get('anthropic_api_key'):
-            api_key = config['ai']['anthropic_api_key']
-        else:
-            api_key = os.getenv('ANTHROPIC_API_KEY')
-            
+        if config and 'ai' in config:
+            api_key = config['ai'].get('anthropic_api_key')
+        
+        if not api_key:
+            api_key = os.environ.get('ANTHROPIC_API_KEY')
+        
         if not api_key:
             print("Warning: ANTHROPIC_API_KEY not found in config or environment. Using rule-based summary.")
             return None
@@ -491,60 +492,91 @@ def generate_ai_summary(processed_files, page_count, config=None):
             _, ext = os.path.splitext(file_path.lower())
             file_list.append(f"- {relative_path} ({ext})")
         
-        # Create prompt for AI
-        prompt = f"""Analyze this list of code files and create a brief summary describing what was added to this PDF.
-
-Files ({len(processed_files)} total, {page_count} pages):
-{chr(10).join(file_list[:20])}{'...' if len(file_list) > 20 else ''}
-
-Generate a summary in this format: "Added [technology/component type] [purpose/functionality]. Added new [X] pages."
-
-Examples:
-- "Added React components for user interface. Added new 15 pages."
-- "Added Python backend API functions. Added new 8 pages."
-- "Added CSS styling for web components. Added new 12 pages."
-- "Added JavaScript utility functions. Added new 6 pages."
-
-Focus on:
-- Main technology/language used (React, Python, CSS, JavaScript, etc.)
-- Component type or functionality (components, functions, styling, etc.)
-- Purpose or context (UI, backend, utilities, etc.)
-
-Respond with ONLY the summary in the specified format."""
-        
         # Get AI configuration from config or use defaults
         ai_config = config.get('ai', {}) if config else {}
         model = ai_config.get('model', 'claude-3-5-sonnet-20241022')
         max_tokens = ai_config.get('max_tokens', 50)
         temperature = ai_config.get('temperature', 0.3)
         
-        # Call Anthropic API
-        client = anthropic.Anthropic(api_key=api_key)
-        response = client.messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        )
+        # Get language configuration
+        languages = ai_config.get('languages', ['en'])
+        if not isinstance(languages, list):
+            languages = [languages]
         
-        summary = response.content[0].text.strip()
+        # Generate summaries for each requested language
+        summaries = {}
+        for lang in languages:
+            # Create unified prompt with translation instructions
+            prompt = f"""Analyze this list of code files and create a brief summary describing what was added to this PDF.
+
+Files ({len(processed_files)} total, {page_count} pages):
+{chr(10).join(file_list[:20])}{'...' if len(file_list) > 20 else ''}
+
+TRANSLATION INSTRUCTIONS:
+- First analyze the code files in English for accurate technical understanding
+- Then translate your analysis to {lang.upper()} language
+- Use this format: "Added [technology/component type] [purpose/functionality]. Added new [X] pages."
+- Ensure proper translation of technical terms (React, Python, CSS, JavaScript, etc.)
+- Keep the page count number unchanged
+- Maintain the same structure and meaning as the English version
+
+Focus on:
+- Main technology/language used (React, Python, CSS, JavaScript, etc.)
+- Component type or functionality (components, functions, styling, etc.)
+- Purpose or context (UI, backend, utilities, etc.)
+
+Respond with ONLY the summary in {lang.upper()} language using the specified format."""
+            
+            # Call Anthropic API for this language with retry logic
+            client = anthropic.Anthropic(api_key=api_key)
+            
+            max_retries = ai_config.get('max_retries', 3)
+            retry_delay = ai_config.get('retry_delay', 2)  # Start with 2 seconds
+            
+            for attempt in range(max_retries):
+                try:
+                    response = client.messages.create(
+                        model=model,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": prompt
+                            }
+                        ]
+                    )
+                    
+                    summaries[lang] = response.content[0].text.strip()
+                    break  # Success, exit retry loop
+                    
+                except Exception as e:
+                    if "overloaded" in str(e).lower() or "529" in str(e):
+                        if attempt < max_retries - 1:  # Don't sleep on last attempt
+                            print(f"API overloaded, retrying in {retry_delay} seconds... (attempt {attempt + 1}/{max_retries})")
+                            import time
+                            time.sleep(retry_delay)
+                            retry_delay *= 2  # Exponential backoff
+                        else:
+                            print(f"API still overloaded after {max_retries} attempts. Using rule-based summary.")
+                            summaries[lang] = None
+                    else:
+                        print(f"Error calling Anthropic API: {e}")
+                        summaries[lang] = None
+                        break
         
-        # Add page count if not included
-        if str(page_count) not in summary:
-            summary += f". {page_count} pages."
+        # Return the first successful summary or combine them
+        if summaries:
+            if len(summaries) == 1:
+                return list(summaries.values())[0]
+            else:
+                # Return all summaries on separate lines
+                return "\n".join([f"Summary [{lang.upper()}]: {summary}" for lang, summary in summaries.items()])
         
-        return summary
-        
-    except ImportError:
-        print("Warning: anthropic package not installed. Using rule-based summary.")
         return None
+        
     except Exception as e:
-        print(f"Warning: AI summary failed ({str(e)}). Using rule-based summary.")
+        print(f"Error generating AI summary: {e}")
         return None
 
 

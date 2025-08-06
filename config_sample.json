@@ -34,11 +34,14 @@
     "filename": "code_listing.pdf",
     "update_ignore": false
   },
-  "ai": {
-    "anthropic_api_key": "",
-    "enable_ai_summary": true,
-    "model": "claude-3-5-sonnet-20241022",
-    "max_tokens": 50,
-    "temperature": 0.3
-  }
+      "ai": {
+      "anthropic_api_key": "",
+      "enable_ai_summary": true,
+      "model": "claude-3-5-sonnet-20241022",
+      "max_tokens": 50,
+      "temperature": 0.3,
+      "languages": ["en"],
+      "max_retries": 3,
+      "retry_delay": 2
+    }
 } 
