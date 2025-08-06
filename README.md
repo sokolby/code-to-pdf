@@ -8,6 +8,9 @@ A Python script that generates PDF files containing **code listings** from your 
 - Preserves exact formatting and indentation
 - Tracks processed files to avoid duplicates
 - Supports 20+ programming languages and file types
+- **NEW**: Smart page limiting with intelligent file selection
+- **NEW**: Exact page counting and reporting
+- **NEW**: Flexible page limits (allows 2-3 extra pages for better utilization)
 
 ## Features
 
@@ -17,6 +20,10 @@ A Python script that generates PDF files containing **code listings** from your 
 - ✅ **Smart Ignore File**: Track and skip already processed files with wildcard patterns
 - ✅ **Flexible Configuration**: Customizable via config file and command line arguments
 - ✅ **Long Line Handling**: Automatically wraps long lines while preserving indentation
+- ✅ **Smart Page Limiting**: Intelligently selects files to maximize page utilization
+- ✅ **Exact Page Counting**: Shows precise page count of generated PDF
+- ✅ **Flexible Limits**: Allows 2-3 extra pages beyond limit for better value
+- ✅ **Smart File Selection**: Skips oversized files and finds better fits
 
 ## Quick Start
 
@@ -48,10 +55,28 @@ python3 generate_code_pdf.py --no-ignore --filename all_files.pdf
 # Update ignore file with processed files
 python3 generate_code_pdf.py --update-ignore --filename processed.pdf
 
-
-
 # Show current configuration
 python3 generate_code_pdf.py --show-config
+```
+
+## Smart Page Limiting
+
+The script now features intelligent page management:
+
+- **Target Page Limit**: Respects your specified page limit (e.g., 20 pages)
+- **Flexible Overrun**: Allows 2-3 extra pages for better utilization
+- **Smart File Selection**: Skips files that would exceed by too much
+- **Better Value**: Instead of getting 16 pages when you want 20, you get 22-23 pages
+- **Exact Reporting**: Shows precise page count of generated PDF
+
+### Example Output
+
+```
+Including file assets/common/stylus/settings/optimize.styl - will exceed 20 pages by 3 pages (estimated 23 pages)
+Skipping file assets/common/stylus/settings/variables.styl - would exceed 20 pages by too much (estimated 27 pages), trying next file...
+PDF generated successfully: output/my_code.pdf
+Total pages generated: 23
+Files processed and added to PDF: 8
 ```
 
 ## Detailed Usage
@@ -70,8 +95,6 @@ python3 generate_code_pdf.py --show-config
 | `--no-ignore` | Process all files, ignoring ignore file | False |
 | `--update-ignore` | Update ignore file with processed files | From config or False |
 | `--show-config` | Show current configuration and exit | False |
-
-
 
 ## Configuration
 
@@ -110,12 +133,12 @@ The script uses `config.json` for all settings, with command line arguments taki
   "code_folder": "../",
   "output_folder": "output/",
   "ignore_file": "ignore.txt",
-      "defaults": {
-      "title": "Code Listing",
-      "pages": 10,
-      "filename": "code_listing.pdf",
-      "update_ignore": false
-    }
+  "defaults": {
+    "title": "Code Listing",
+    "pages": 10,
+    "filename": "code_listing.pdf",
+    "update_ignore": false
+  }
 }
 ```
 
@@ -158,6 +181,16 @@ The script automatically detects and processes common code and text files:
 - **Configurable**: Set `code_folder` in `config.json` or use `--code-folder`
 - **Recursive**: Searches all subdirectories for code files
 - **Sorted**: Files are processed in alphabetical order
+
+### Smart Page Management
+
+The script now features intelligent page management:
+
+- **Line Counting**: Estimates pages based on actual line count and font metrics
+- **Smart Selection**: Skips files that would exceed by more than 3 pages
+- **Flexible Limits**: Allows 2-3 extra pages for better utilization
+- **Exact Reporting**: Uses PyPDF2 to count actual pages in generated PDF
+- **Better Value**: Maximizes page utilization instead of stopping early
 
 ### Ignore File Functionality
 
@@ -204,10 +237,9 @@ code-to-pdf/
 
 - Python 3.6+
 - reportlab>=4.0.0
+- PyPDF2>=3.0.0 (for page counting)
 
 ## Troubleshooting
-
-
 
 ### File Not Found
 - Ensure the `code_folder` path exists
@@ -230,5 +262,10 @@ code-to-pdf/
 - Use `--show-config` to see current configuration
 - Check config file syntax (valid JSON)
 - Verify file paths in configuration
+
+### Page Counting Issues
+- Ensure PyPDF2 is installed: `pip3 install PyPDF2`
+- Check if generated PDF is readable
+- Verify output directory permissions
 
  

@@ -300,16 +300,21 @@ def generate_pdf(output_path, title, files_list, max_pages=None, config=None):
     story.append(Paragraph(title, styles['CustomTitle']))
     story.append(Spacer(1, 20))
     
-    page_count = 1
     processed_files = []  # Track files that were actually processed
+    files_processed = 0
     
     # Get the base directory for relative path calculation
     base_dir = os.path.abspath(config['code_folder'])
     
+    # Calculate available height per page
+    page_height = page_size[1] - margins['top'] - margins['bottom']
+    line_height = styles['Code'].leading
+    lines_per_page = int(page_height / line_height)
+    
+    current_lines = 0
+    estimated_pages = 1
+    
     for file_item in files_list:
-        if max_pages and page_count > max_pages:
-            break
-            
         # Handle both file paths (strings) and sample content (tuples)
         if isinstance(file_item, tuple):
             file_path, content = file_item
@@ -324,10 +329,6 @@ def generate_pdf(output_path, title, files_list, max_pages=None, config=None):
             # If files are on different drives (Windows), use the full path
             relative_path = file_path
             
-        # Add file path as heading (use relative path)
-        story.append(Paragraph(f"<b>{relative_path}</b>", styles['FilePath']))
-        story.append(Spacer(1, 10))
-        
         # Process content to handle long lines and preserve formatting
         lines = content.split('\n')
         processed_lines = []
@@ -337,6 +338,7 @@ def generate_pdf(output_path, title, files_list, max_pages=None, config=None):
         char_width = 8  # points per character for Courier font
         max_chars = int(max_width / char_width)
         
+        file_lines = 0
         for line in lines:
             if len(line) > max_chars:
                 # Calculate indentation
@@ -353,6 +355,7 @@ def generate_pdf(output_path, title, files_list, max_pages=None, config=None):
                         available = max_chars
                         line_part = line[:available]
                         processed_lines.append(line_part)
+                        file_lines += 1
                         remaining = line[available:].lstrip()
                         first_line = False
                     else:
@@ -369,31 +372,63 @@ def generate_pdf(output_path, title, files_list, max_pages=None, config=None):
                             
                         line_part = continuation_indent + remaining[:available]
                         processed_lines.append(line_part)
+                        file_lines += 1
                         remaining = remaining[available:]
             else:
                 processed_lines.append(line)
+                file_lines += 1
         
         # Join processed lines
         processed_content = '\n'.join(processed_lines)
         
+        # Estimate if this file would exceed page limit BEFORE adding to story
+        if max_pages:
+            # Add estimated lines for file path heading (about 2 lines)
+            estimated_total_lines = current_lines + 2 + file_lines
+            estimated_pages = (estimated_total_lines // lines_per_page) + 1
+            
+            # Calculate how many pages we currently have
+            current_pages = (current_lines // lines_per_page) + 1
+            pages_remaining = max_pages - current_pages
+            
+            # If adding this file would exceed by more than 3 pages, skip this file and try the next one
+            if estimated_pages > max_pages + 3:
+                print(f"Skipping file {relative_path} - would exceed {max_pages} pages by too much (estimated {estimated_pages} pages), trying next file...")
+                continue
+            elif estimated_pages > max_pages:
+                print(f"Including file {relative_path} - will exceed {max_pages} pages by {estimated_pages - max_pages} pages (estimated {estimated_pages} pages)")
+        
+        # If we get here, the file fits within the page limit
+        # Add file path as heading (use relative path)
+        story.append(Paragraph(relative_path, styles['FilePath']))
+        
+        # Update current lines count
+        current_lines += 2 + file_lines
+        
         # Use Preformatted for better code formatting preservation
         story.append(Preformatted(processed_content, styles['Code'], maxLineLength=max_chars))
         
-        story.append(Spacer(1, 10))
-        
         # Add this file to the processed files list
         processed_files.append(file_path)
-        
-        # Check if we need a page break
-        if len(story) > 20:  # Rough estimate for page break
-            story.append(PageBreak())
-            page_count += 1
+        files_processed += 1
     
     # Build PDF
     doc.build(story)
-    print(f"PDF generated successfully: {output_path}")
-    print(f"Total pages: {page_count}")
-    print(f"Files processed and added to PDF: {len(processed_files)}")
+    
+    # Count actual pages by reading the generated PDF
+    try:
+        import PyPDF2
+        with open(output_path, 'rb') as pdf_file:
+            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            actual_pages = len(pdf_reader.pages)
+            print(f"PDF generated successfully: {output_path}")
+            print(f"Total pages generated: {actual_pages}")
+            print(f"Files processed and added to PDF: {len(processed_files)}")
+    except ImportError:
+        # Fallback if PyPDF2 is not available
+        print(f"PDF generated successfully: {output_path}")
+        print(f"Files processed and added to PDF: {len(processed_files)}")
+        print("Note: Install PyPDF2 to see exact page count")
     
     return processed_files
 
@@ -485,7 +520,7 @@ def main():
     processed_files = generate_pdf(output_path, config['defaults']['title'], files_list, config['defaults']['pages'], config)
     
     # Update ignore file if requested - only save files that were actually processed
-    if args.update_ignore:
+    if args.update_ignore and processed_files:
         save_processed_files(processed_files, ignore_file_path)
 
 
