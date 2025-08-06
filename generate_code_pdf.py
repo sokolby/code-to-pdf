@@ -248,20 +248,82 @@ def is_text_file(file_path):
 
 
 
-def read_file_content(file_path):
-    """Read file content and return as string."""
+def apply_blacklist(content, config):
+    """Apply blacklist word replacement to content."""
+    if not config.get('blacklist', {}).get('enabled', False):
+        return content
+    
+    blacklist_config = config['blacklist']
+    words = blacklist_config.get('words', [])
+    replacement = blacklist_config.get('replacement', '*****')
+    case_sensitive = blacklist_config.get('case_sensitive', False)
+    whole_word_only = blacklist_config.get('whole_word_only', True)
+    
+    if not words:
+        return content
+    
+    result = content
+    replacements_made = 0
+    
+    for word in words:
+        if case_sensitive:
+            search_word = word
+        else:
+            search_word = word
+        
+        if whole_word_only:
+            # Use word boundaries for whole word matching
+            import re
+            pattern = r'\b' + re.escape(search_word) + r'\b'
+            if case_sensitive:
+                count = len(re.findall(pattern, result))
+                result = re.sub(pattern, replacement, result)
+                replacements_made += count
+            else:
+                # For case-insensitive whole word matching
+                count = len(re.findall(pattern, result, flags=re.IGNORECASE))
+                result = re.sub(pattern, replacement, result, flags=re.IGNORECASE)
+                replacements_made += count
+        else:
+            # Simple string replacement
+            if case_sensitive:
+                count = result.count(search_word)
+                result = result.replace(search_word, replacement)
+                replacements_made += count
+            else:
+                # For case-insensitive replacement
+                import re
+                pattern = re.escape(search_word)
+                count = len(re.findall(pattern, result, flags=re.IGNORECASE))
+                result = re.sub(pattern, replacement, result, flags=re.IGNORECASE)
+                replacements_made += count
+    
+    if replacements_made > 0:
+        print(f"Applied blacklist: {replacements_made} replacements made")
+    
+    return result
+
+
+def read_file_content(file_path, config=None):
+    """Read file content and return as string with optional blacklist processing."""
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
-            return f.read()
+            content = f.read()
     except UnicodeDecodeError:
         # Try with different encoding if UTF-8 fails
         try:
             with open(file_path, 'r', encoding='latin-1') as f:
-                return f.read()
+                content = f.read()
         except Exception as e:
             return f"Error reading file: {str(e)}"
     except Exception as e:
         return f"Error reading file: {str(e)}"
+    
+    # Apply blacklist if config is provided
+    if config:
+        content = apply_blacklist(content, config)
+    
+    return content
 
 
 def generate_pdf(output_path, title, files_list, max_pages=None, config=None):
@@ -318,9 +380,11 @@ def generate_pdf(output_path, title, files_list, max_pages=None, config=None):
         # Handle both file paths (strings) and sample content (tuples)
         if isinstance(file_item, tuple):
             file_path, content = file_item
+            # Apply blacklist to sample content
+            content = apply_blacklist(content, config)
         else:
             file_path = file_item
-            content = read_file_content(file_path)
+            content = read_file_content(file_path, config)
             
         # Calculate relative path from base directory
         try:

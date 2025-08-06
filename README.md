@@ -25,6 +25,7 @@ A Python script that generates PDF files containing **code listings** from your 
 - ✅ **Exact Page Counting**: Shows precise page count of generated PDF
 - ✅ **Flexible Limits**: Allows 2-3 extra pages beyond limit for better value
 - ✅ **Smart File Selection**: Skips oversized files and finds better fits
+- ✅ **Blacklist Protection**: Automatically replaces sensitive words with asterisks
 
 ## Quick Start
 
@@ -196,6 +197,82 @@ You can customize AI behavior in your `config.json`:
 
 **Note**: The config file method takes precedence over environment variables.
 
+## Blacklist Protection
+
+The script now includes automatic blacklist protection to replace sensitive information with asterisks:
+
+### Features:
+- **Automatic Detection**: Replaces sensitive words like passwords, API keys, and tokens
+- **Configurable Words**: Add your own sensitive terms to the blacklist
+- **Case Insensitive**: By default, matches words regardless of case
+- **Whole Word Matching**: Only replaces complete words, not partial matches
+- **Custom Replacement**: Use any replacement string (default: `*****`)
+- **Real-time Processing**: Applied during file reading, before PDF generation
+
+### Configuration:
+```json
+"blacklist": {
+  "enabled": true,
+  "words": [
+    "password",
+    "secret",
+    "api_key",
+    "token",
+    "private_key",
+    "database_url",
+    "connection_string"
+  ],
+  "replacement": "*****",
+  "case_sensitive": false,
+  "whole_word_only": true
+}
+```
+
+### Options:
+- **`enabled`**: Set to `false` to disable blacklist protection
+- **`words`**: Array of sensitive words to replace
+- **`replacement`**: String to use as replacement (default: `*****`)
+- **`case_sensitive`**: If `true`, only matches exact case
+- **`whole_word_only`**: If `true`, only replaces complete words
+
+### Examples:
+
+**Before blacklist:**
+```python
+DATABASE_URL = "postgresql://user:password123@localhost:5432/mydb"
+API_KEY = "sk-1234567890abcdef"
+SECRET_TOKEN = "my_secret_token_here"
+```
+
+**After blacklist:**
+```python
+***** = "postgresql://user:password123@localhost:5432/mydb"
+***** = "sk-1234567890abcdef"
+***** = "my_secret_token_here"
+```
+
+### Usage:
+The blacklist is automatically applied when processing files. You'll see a message like:
+```
+Applied blacklist: 5 replacements made
+```
+
+### Adding Custom Words:
+Edit the `words` array in your `config.json` to add your own sensitive terms:
+```json
+"words": [
+  "password",
+  "secret",
+  "api_key",
+  "token",
+  "private_key",
+  "database_url",
+  "connection_string",
+  "my_custom_secret",
+  "internal_api_key"
+]
+```
+
 ## Detailed Usage
 
 ### Command Line Options
@@ -255,6 +332,21 @@ The script uses `config.json` for all settings, with command line arguments taki
     "pages": 10,
     "filename": "code_listing.pdf",
     "update_ignore": false
+  },
+  "blacklist": {
+    "enabled": true,
+    "words": [
+      "password",
+      "secret",
+      "api_key",
+      "token",
+      "private_key",
+      "database_url",
+      "connection_string"
+    ],
+    "replacement": "*****",
+    "case_sensitive": false,
+    "whole_word_only": true
   }
 }
 ```

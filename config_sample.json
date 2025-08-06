@@ -34,14 +34,29 @@
     "filename": "code_listing.pdf",
     "update_ignore": false
   },
-      "ai": {
-      "anthropic_api_key": "",
-      "enable_ai_summary": true,
-      "model": "claude-3-5-sonnet-20241022",
-      "max_tokens": 50,
-      "temperature": 0.3,
-      "languages": ["en"],
-      "max_retries": 3,
-      "retry_delay": 2
-    }
+  "blacklist": {
+    "enabled": true,
+    "words": [
+      "password",
+      "secret",
+      "api_key",
+      "token",
+      "private_key",
+      "database_url",
+      "connection_string"
+    ],
+    "replacement": "*****",
+    "case_sensitive": false,
+    "whole_word_only": true
+  },
+  "ai": {
+    "anthropic_api_key": "",
+    "enable_ai_summary": true,
+    "model": "claude-3-5-sonnet-20241022",
+    "max_tokens": 50,
+    "temperature": 0.3,
+    "languages": ["en"],
+    "max_retries": 3,
+    "retry_delay": 2
+  }
 } 
