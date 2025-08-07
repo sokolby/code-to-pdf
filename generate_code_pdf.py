@@ -75,9 +75,9 @@ def create_styles(config):
         ))
     
     # Code style - optimized for Preformatted
-    if 'Code' not in styles:
+    if 'CodeContent' not in styles:
         styles.add(ParagraphStyle(
-            name='Code',
+            name='CodeContent',
             fontName=code_font['family'],
             fontSize=code_font['size'],
             leading=code_font['size'] * 1.2,  # Line height
@@ -326,12 +326,16 @@ def read_file_content(file_path, config=None):
     return content
 
 
-def generate_pdf(output_path, title, files_list, max_pages=None, config=None):
+def generate_pdf(output_path, files_list, config=None):
     """Generate PDF with code listings."""
     
     # Config is required
     if config is None:
         raise ValueError("Config parameter is required")
+    
+    # Get title and max_pages from config
+    title = config['defaults']['title']
+    max_pages = config['defaults'].get('pages')
     
     # Ensure output directory exists
     output_dir = os.path.dirname(output_path)
@@ -360,7 +364,7 @@ def generate_pdf(output_path, title, files_list, max_pages=None, config=None):
     
     # Add title
     story.append(Paragraph(title, styles['CustomTitle']))
-    story.append(Spacer(1, 20))
+    story.append(Spacer(1, 5))
     
     processed_files = []  # Track files that were actually processed
     files_processed = 0
@@ -370,7 +374,7 @@ def generate_pdf(output_path, title, files_list, max_pages=None, config=None):
     
     # Calculate available height per page
     page_height = page_size[1] - margins['top'] - margins['bottom']
-    line_height = styles['Code'].leading
+    line_height = styles['CodeContent'].leading
     lines_per_page = int(page_height / line_height)
     
     current_lines = 0
@@ -398,7 +402,7 @@ def generate_pdf(output_path, title, files_list, max_pages=None, config=None):
         processed_lines = []
         
         # Calculate available width for code
-        max_width = 6.0 * inch  # Available width in points
+        max_width = 7.0 * inch  # Available width in points
         char_width = 8  # points per character for Courier font
         max_chars = int(max_width / char_width)
         
@@ -470,7 +474,7 @@ def generate_pdf(output_path, title, files_list, max_pages=None, config=None):
         current_lines += 2 + file_lines
         
         # Use Preformatted for better code formatting preservation
-        story.append(Preformatted(processed_content, styles['Code'], maxLineLength=max_chars))
+        story.append(Preformatted(processed_content, styles['CodeContent'], maxLineLength=max_chars))
         
         # Add this file to the processed files list
         processed_files.append(file_path)
@@ -811,7 +815,7 @@ def main():
         print(f"Limiting to maximum {args.max_files} files")
     
     # Generate PDF and get list of files that were actually processed
-    processed_files = generate_pdf(output_path, config['defaults']['title'], files_list, config['defaults']['pages'], config)
+    processed_files = generate_pdf(output_path, files_list, config)
     
     # Update ignore file if requested - only save files that were actually processed
     if args.update_ignore and processed_files:
